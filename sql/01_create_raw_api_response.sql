@@ -1,0 +1,8 @@
+CREATE TABLE raw.ApiResponse (
+    ApiResponseID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    SourceName VARCHAR(50) NOT NULL,
+    Endpoint NVARCHAR(500) NOT NULL,
+    RequestParams NVARCHAR(500) NOT NULL,
+    ResponseJson NVARCHAR(MAX) NOT NULL,
+    ExtractedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);

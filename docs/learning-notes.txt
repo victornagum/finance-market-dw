@@ -1,0 +1,246 @@
+PROJECT LEARNING NOTES
+Project: Crypto Market Data Pipeline
+Date: October 14, 2026
+
+==================================================
+CONCEPTS
+==================================================
+
+1. Python Virtual Environment
+
+What is it?
+A separate Python environment for a project, where its installed packages are managed independently of other projects.
+
+Why is it important? / Why do we need this?
+It helps prevent dependency conflicts between projects. Our project uses packages such as requests, pandas, and pyodbc.
+
+2. API (Application Programming Interface)
+
+What is it?
+An interface that allows different software applications to communicate and exchange data.
+
+Why is it important? / Why do we need this?
+We use Binance's public API to retrieve BTC/USDT hourly cryptocurrency market data instead of manually collecting the data.
+
+3. JSON (JavaScript Object Notation)
+
+What is it?
+A text-based data format commonly used to exchange structured data between applications.
+
+Why is it important? / Why do we need this?
+The Binance API returns data in JSON format. We need to understand and process that data before storing and transforming it.
+
+4. HTTP Status Code
+
+What is it?
+A code returned by a web server indicating the result of an HTTP request.
+
+Why is it important? / Why do we need this?
+It helps us determine whether an API request succeeded or failed. We tested our Binance API request and received status code 200, indicating success.
+
+5. SQL Server Database Schema
+
+What is it?
+A schema is a logical container used to organize database objects such as tables and views.
+
+Why is it important? / Why do we need this?
+We organize our project tables into schemas such as raw, dw, and mart. This separates raw API responses, cleaned warehouse data, and reporting-ready data.
+
+6. ETL (Extract, Transform, Load)
+
+What is it?
+A data integration process that extracts data from a source, transforms it into the required format, and loads it into a destination.
+
+Why is it important? / Why do we need this?
+Our project needs to retrieve cryptocurrency data, validate and transform it, and store it in a structured data warehouse for analysis.
+
+7. Data Warehouse
+
+What is it?
+A database designed to store structured, integrated data for analysis and reporting.
+
+Why is it important? / Why do we need this?
+Our FinanceDW database will eventually contain cleaned cryptocurrency market data that can support SQL analysis and Power BI reporting.
+
+8. Database Transaction
+
+What is it?
+A group of database operations handled as a unit of work.
+
+Why is it important? / Why do we need this?
+Our Python loader uses connection.commit() to commit the inserted API response to SQL Server. Transactions help control when database changes are committed.
+
+==================================================
+IDEAS / TRIVIAS
+==================================================
+
+1. Raw Data Preservation
+
+Idea:
+Keep the original API response before transforming it.
+
+Why is this useful?
+If our transformation logic changes or produces incorrect results, we can inspect the original response and process it again without necessarily calling the API again.
+
+2. Separate Extraction and Loading Logic
+
+Idea:
+Keep API retrieval in extract.py and database insertion in load_raw.py.
+
+Why is this useful?
+Each file has a clearer responsibility. We can improve or test extraction separately from database loading.
+
+3. Raw Schema as a Staging Area
+
+Idea:
+Use raw.ApiResponse as the initial landing point for API data.
+
+Why is this useful?
+It preserves the original response and provides a checkpoint before we validate and transform the data. It serves a staging purpose, although it is not a full data lake.
+
+4. Python and SQL Have Different Responsibilities
+
+Idea:
+Use Python for API extraction and data transformation, then SQL for creating reporting-ready data marts.
+
+Why is this useful?
+Python is well suited to API integration and programmatic data processing. SQL is well suited to querying, aggregating, and organizing warehouse data for reporting.
+
+==================================================
+CODE
+==================================================
+
+1. Making an API Request
+
+Code:
+response = requests.get(url, params=params, timeout=30)
+
+What is it?
+A Python statement using the requests library to send an HTTP GET request.
+
+What does it do?
+It sends a request to the specified URL with the given query parameters and a 30-second timeout.
+
+Why do we need this?
+It retrieves cryptocurrency market data from Binance.
+
+2. Checking the HTTP Response
+
+Code:
+response.raise_for_status()
+
+What is it?
+A method provided by the requests library.
+
+What does it do?
+It raises an exception if the HTTP response indicates a client or server error, generally status codes 400 and above.
+
+Why do we need this?
+It prevents the extraction process from silently treating an unsuccessful HTTP response as valid data.
+
+3. Parsing JSON
+
+Code:
+data = response.json()
+
+What is it?
+A method that parses a JSON HTTP response into Python objects.
+
+What does it do?
+It converts the API's JSON response into Python data, such as a list containing candle records.
+
+Why do we need this?
+Python needs to work with the returned data before we can store or transform it.
+
+4. Defining a Function
+
+Code:
+def fetch_market_data():
+    ...
+    return url, params, response.json()
+
+What is it?
+A Python function that groups instructions into a reusable unit.
+
+What does it do?
+It requests the market data and returns the endpoint, request parameters, and parsed API response.
+
+Why do we need this?
+Other Python files can reuse the extraction logic without duplicating the API request code.
+
+5. Converting Python Data into JSON Text
+
+Code:
+response_json = json.dumps(data)
+
+What is it?
+The json.dumps() function serializes a Python object into a JSON-formatted string.
+
+What does it do?
+It converts the extracted Python data into text that can be stored in the ResponseJson column.
+
+Why do we need this?
+Our raw.ApiResponse table stores the original response in an NVARCHAR(MAX) column.
+
+6. Establishing a SQL Server Connection
+
+Code:
+with pyodbc.connect(connection_string) as connection:
+    cursor = connection.cursor()
+
+What is it?
+Code that opens a SQL Server connection and creates a cursor for executing SQL.
+
+What does it do?
+The connection provides access to the database, while the cursor executes SQL statements.
+
+Why do we need this?
+Our Python script needs to communicate with SQL Server to save the extracted API response.
+
+7. Parameterized SQL
+
+Code:
+cursor.execute(insert_sql, values)
+
+What is it?
+A method call that executes SQL using separate parameter values.
+
+What does it do?
+It supplies values for the placeholders in our INSERT statement.
+
+Why do we need this?
+It separates SQL instructions from data values and helps prevent SQL injection when used correctly.
+
+8. Committing a Database Transaction
+
+Code:
+connection.commit()
+
+What is it?
+A method that commits the current database transaction.
+
+What does it do?
+It asks SQL Server to make the transaction's changes permanent.
+
+Why do we need this?
+We use it after inserting the API response so the operation is committed rather than left uncommitted.
+
+9. Checking Whether Stored Text Is Valid JSON
+
+Code:
+SELECT ISJSON(ResponseJson) AS IsValidJson
+FROM raw.ApiResponse;
+
+What is it?
+A SQL Server query that uses the ISJSON() function.
+
+What does it do?
+It checks whether the stored text contains valid JSON. In SQL Server, ISJSON() returns 1 for valid JSON and 0 for invalid JSON; it can also return NULL for a NULL input.
+
+Why do we need this?
+It helps verify that the API response was stored in a format we can parse and process later.
+
+==================================================
+END OF CURRENT NOTES
+==================================================
+

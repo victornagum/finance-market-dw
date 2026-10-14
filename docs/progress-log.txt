@@ -1,0 +1,21 @@
+PROJECT PROGRESS LOG
+Project: Crypto Market Data Pipeline
+
+Date: October 14, 2026
+
+Completed:
+- Set up the project structure, Git repository, and Python virtual environment.
+- Installed required Python packages.
+- Tested the Binance API connection.
+- Created the FinanceDW database and raw.ApiResponse table.
+- Connected Python to SQL Server using pyodbc.
+- Created extract.py and load_raw.py.
+- Successfully extracted Binance BTC/USDT hourly candle data and saved the raw API response in SQL Server.
+- Verified the stored response using ISJSON().
+
+Documentation:
+- Created progress-log.txt to track project progress.
+- Created learning-notes.txt to document concepts, ideas, and code examples.
+
+Next Step:
+- Read the stored JSON from SQL Server and begin transforming the candle data in Python.
