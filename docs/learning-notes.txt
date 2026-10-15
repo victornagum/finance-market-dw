@@ -240,7 +240,61 @@ It checks whether the stored text contains valid JSON. In SQL Server, ISJSON() r
 Why do we need this?
 It helps verify that the API response was stored in a format we can parse and process later.
 
+
+Date: October 15, 2026
+
+Concepts:
+
+1. Python Dictionaries
+What is it?
+A collection of key-value pairs.
+Why is it important? / Why do we need this?
+Makes market data easier to access using field names instead of numeric positions.
+
+2. Data Type Conversion
+What is it?
+Converting values from one data type to another.
+Why is it important? / Why do we need this?
+Allows prices and volumes to be used in calculations and timestamps to be interpreted as dates.
+
+3. Data Quality Validation
+What is it?
+Checking whether data meets defined rules.
+Why is it important? / Why do we need this?
+Helps prevent invalid market data from entering the warehouse.
+
+Ideas/Trivias:
+
+- Binance returns 12 values per candle in a fixed order.
+- Unix timestamps from Binance are in milliseconds; Python's datetime conversion expects seconds.
+- The raw response is preserved in SQL Server so it can be inspected or reprocessed.
+
+Code:
+
+1. `dict(zip(field_names, candle))`
+What is it?
+Creates a dictionary by pairing field names with values.
+What does it do?
+Converts each candle list into a named record.
+Why do we need this?
+Makes transformed data easier to understand and process.
+
+2. `datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)`
+What is it?
+Converts a Unix timestamp into a UTC datetime.
+What does it do?
+Converts milliseconds to seconds and produces a readable timestamp.
+Why do we need this?
+Provides consistent timestamps for analysis.
+
+3. `raise ValueError(...)`
+What is it?
+Raises an exception when a condition indicates invalid data.
+What does it do?
+Stops processing when a validation rule fails.
+Why do we need this?
+Prevents the pipeline from silently accepting invalid records.
+
 ==================================================
 END OF CURRENT NOTES
 ==================================================
-

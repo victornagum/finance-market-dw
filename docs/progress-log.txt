@@ -19,3 +19,17 @@ Documentation:
 
 Next Step:
 - Read the stored JSON from SQL Server and begin transforming the candle data in Python.
+
+Date: October 15, 2026
+
+Completed:
+- Read raw Binance JSON from SQL Server into Python.
+- Converted candle lists into dictionaries with named fields.
+- Converted price and volume values to numeric types.
+- Converted candle timestamps into UTC datetimes.
+- Removed the unused `ignore` field.
+- Added data quality checks for price ranges, negative volume, missing values, and record counts.
+
+Next step:
+- Create the `dw` schema in SQL Server.
+- Design the `dw.FactMarketKline` table for cleaned market data.
