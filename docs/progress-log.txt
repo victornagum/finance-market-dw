@@ -33,3 +33,20 @@ Completed:
 Next step:
 - Create the `dw` schema in SQL Server.
 - Design the `dw.FactMarketKline` table for cleaned market data.
+
+Date: October 17, 2026
+
+Completed:
+- Created centralized database configuration in `src/config.py`.
+- Configured `.env` to store database server and database name.
+- Integrated `python-dotenv` to load environment variables.
+- Added validation for required environment variables.
+- Updated `load_raw.py`, `read_raw.py`, and `load_dw.py` to use `get_connection()`.
+- Tested database connection using the centralized configuration.
+- Verified that missing configuration produces an error.
+- Maintained warehouse insert, update, and unchanged record detection.
+- Confirmed pipeline logging to the console and `logs/pipeline.log`.
+
+Next:
+- Design incremental data extraction using the latest stored candle timestamp.
+- Define how to handle overlapping extraction windows and changing market candles before modifying the code.

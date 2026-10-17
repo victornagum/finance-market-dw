@@ -1,17 +1,7 @@
 import json
-import pyodbc
 
+from config import get_connection
 from extract import fetch_market_data
-
-connection_string = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=VPN-CHUWI;"
-    "DATABASE=FinanceDW;"
-    "Trusted_Connection=yes;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=yes;"
-)
-
 
 insert_sql = """
     INSERT INTO raw.ApiResponse (
@@ -36,7 +26,7 @@ values = (
 )
 
 
-with pyodbc.connect(connection_string) as connection:
+with get_connection() as connection:
     cursor = connection.cursor()
 
     cursor.execute(insert_sql, values)

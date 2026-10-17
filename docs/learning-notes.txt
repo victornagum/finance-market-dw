@@ -295,6 +295,78 @@ Stops processing when a validation rule fails.
 Why do we need this?
 Prevents the pipeline from silently accepting invalid records.
 
+Date: October 17, 2026
+
+Concepts
+
+1. Configuration Management
+
+What is it?
+A way to separate application settings from the main program logic.
+
+Why is it important?
+It avoids duplicating database connection settings across scripts and makes configuration easier to maintain.
+
+2. Environment Variables
+
+What is it?
+Values stored outside the source code that applications can read when they run.
+
+Why is it important?
+They allow environment-specific settings to be changed without modifying application code.
+
+3. Configuration Validation
+
+What is it?
+Checking whether required configuration values exist before using them.
+
+Why is it important?
+It helps the program fail early with a clear error instead of failing later during database operations.
+
+4. Idempotent Data Loading
+
+What is it?
+A process designed to produce the same final database state when the same input is processed repeatedly.
+
+Why is it important?
+It supports safe retries and helps avoid unnecessary updates and duplicate records.
+
+Ideas/Trivias
+
+- The `.env` file is excluded from Git using `.gitignore`.
+- The shared `get_connection()` function keeps database connection logic in one place.
+- `OpenTime` is the primary key in the current fact table.
+- The latest market candle can still change, so the pipeline may need to reload overlapping records.
+- A dedicated watermark table may become useful when the project supports multiple independent pipelines.
+
+Code
+
+1. `src/config.py`
+
+What is it?
+A shared module for database configuration and connection creation.
+
+What does it do?
+Loads environment variables, validates required settings, builds the SQL Server connection string, and provides `get_connection()`.
+
+Why do we need this?
+To centralize database configuration and avoid repeating connection logic across scripts.
+
+2. `.env`
+
+What is it?
+A local environment configuration file.
+
+What does it do?
+Stores the database server and database name used by the application.
+
+Why do we need this?
+To separate local configuration from application source code.
+
+3. `src/load_dw.py`
+
+What is it?
+The warehouse loading script
 ==================================================
 END OF CURRENT NOTES
 ==================================================

@@ -1,16 +1,8 @@
 
 import json
-import pyodbc
+from config import get_connection
 from datetime import datetime, timezone
-
-connection_string = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=VPN-CHUWI;"
-    "DATABASE=FinanceDW;"
-    "Trusted_Connection=yes;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=yes;"
-)
+from decimal import Decimal
 
 query = """
     SELECT TOP 1
@@ -20,7 +12,7 @@ query = """
     ORDER BY ApiResponseID DESC;
 """
 
-with pyodbc.connect(connection_string) as connection:
+with get_connection() as connection:
     cursor = connection.cursor()
     cursor.execute(query)
 
@@ -63,7 +55,7 @@ for candle in data:
     "taker_buy_base_volume",
     "taker_buy_quote_volume"
     ]:
-        record[field] = float(record[field])
+        record[field] = Decimal(str(record[field]))
     transformed_data.append(record)
 
 for record in transformed_data:

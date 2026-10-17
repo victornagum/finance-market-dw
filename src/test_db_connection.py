@@ -1,17 +1,10 @@
 
 import pyodbc
 
-connection_string = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=VPN-CHUWI;"
-    "DATABASE=FinanceDW;"
-    "Trusted_Connection=yes;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=yes;"
-)
+from config import get_connection
 
 try:
-    with pyodbc.connect(connection_string, timeout=10) as connection:
+    with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute("SELECT DB_NAME();")
 
