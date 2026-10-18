@@ -50,3 +50,15 @@ Completed:
 Next:
 - Design incremental data extraction using the latest stored candle timestamp.
 - Define how to handle overlapping extraction windows and changing market candles before modifying the code.
+
+Date: October 18, 2026
+
+Completed:
+- Updated incremental extraction to use a bounded time window ending at the last fully closed hourly candle.
+- Preserved the initial five-candle extraction when the warehouse is empty.
+- Successfully ran the pipeline and processed one existing candle without unnecessary database changes.
+
+Next:
+
+- Confirm and commit the completed code changes.
+- Plan the initial 30-day historical load with pagination and completeness checks.

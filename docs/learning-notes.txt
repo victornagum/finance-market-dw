@@ -367,6 +367,66 @@ To separate local configuration from application source code.
 
 What is it?
 The warehouse loading script
+
+Date: October 18, 2026
+
+Concepts
+
+Bounded Incremental Extraction
+
+What is it?
+An extraction process with a defined start time and end time.
+
+Why is it important?
+It limits unnecessary data retrieval and helps prevent unfinished hourly candles from entering the warehouse.
+
+One-Hour Overlap
+
+What is it?
+Re-fetching the latest stored candle and checking for changes.
+
+Why is it important?
+It allows the pipeline to detect changes to previously stored data while relying on the warehouse key to prevent duplicates.
+
+Historical Data Completeness
+
+What is it?
+Ensuring that the expected historical records exist for a defined period.
+
+Why is it important?
+A successful pipeline run does not guarantee that the warehouse contains every expected candle.
+
+Ideas/Trivias
+
+Incremental extraction and historical backfilling solve different problems.
+
+A pipeline can succeed even when historical data is incomplete.
+
+A one-hour overlap supports correction checks, while gap detection identifies missing records.
+
+Code
+
+src/extract.py
+
+What is it?
+The extraction module for Binance market data.
+
+What does it do?
+Retrieves BTCUSDT hourly candles, checks the latest stored opening time, and bounds incremental extraction to fully closed candles.
+
+Why do we need this?
+To retrieve new data efficiently while preserving an overlap with existing data.
+
+src/run_pipeline.py
+
+What is it?
+The pipeline orchestration script.
+
+What does it do?
+Runs the raw extraction and warehouse loading steps in sequence and records execution logs.
+
+Why do we need this?
+To coordinate the pipeline and make its execution and failures easier to monitor.
 ==================================================
 END OF CURRENT NOTES
 ==================================================
