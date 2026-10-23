@@ -62,3 +62,20 @@ Next:
 
 - Confirm and commit the completed code changes.
 - Plan the initial 30-day historical load with pagination and completeness checks.
+
+
+Date: October 23, 2026
+
+Completed:
+- Loaded 30 days of BTCUSDT hourly candles into FinanceDW.
+- Verified 720 candles and 720 unique OpenTime values.
+- Confirmed no missing hourly intervals in the historical window.
+- Ran the incremental pipeline twice; both runs completed successfully.
+- Confirmed repeated runs did not insert or update existing candles.
+- Created and manually tested run_pipeline.bat.
+- Decided to keep the project and SQL Server database local.
+
+Next:
+- Improve incremental extraction so it catches up after missed runs.
+- Configure automatic execution when the laptop starts or the user signs in.
+- Test recovery after several missed hours.

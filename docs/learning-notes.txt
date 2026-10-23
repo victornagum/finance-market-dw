@@ -427,6 +427,89 @@ Runs the raw extraction and warehouse loading steps in sequence and records exec
 
 Why do we need this?
 To coordinate the pipeline and make its execution and failures easier to monitor.
+
+Date: October 23, 2026
+
+Concepts
+
+1. Historical Backfill
+What is it?
+Loading historical records into a data warehouse.
+
+Why is it important?
+It provides enough past data for analysis and reporting.
+This project loaded 720 hourly BTCUSDT candles covering 30 days.
+
+2. Idempotent Loading
+What is it?
+Running a pipeline repeatedly without creating duplicate records or making unnecessary changes.
+
+Why is it important?
+Pipelines may be rerun after failures or missed schedules.
+
+3. Data Completeness
+What is it?
+Checking whether expected records and time intervals are present.
+
+Why is it important?
+A record count alone cannot prove that no hourly candles are missing.
+Unique timestamps and gap checks provide stronger validation.
+
+4. Local Scheduling
+What is it?
+Running a pipeline automatically on a local computer.
+
+Why is it important?
+It automates execution without requiring cloud hosting.
+However, the computer must be on and available to execute the job.
+
+
+Ideas / Trivias
+
+- 30 days × 24 hours = 720 hourly candles.
+- Binance API startTime and endTime parameters use Unix timestamps in milliseconds.
+- Re-fetching the latest stored candle helps detect changes to an existing record.
+- A laptop that is powered off cannot execute a scheduled pipeline.
+- Catch-up extraction is needed to retrieve records missed while the pipeline was not running.
+
+
+Code
+
+File: src/load_history.py
+
+What is it?
+A script for historical data extraction and loading.
+
+What does it do?
+Fetches hourly market data, saves API responses to raw.ApiResponse,
+and invokes the existing warehouse loader.
+
+Why is it needed?
+It supports historical backfills without duplicating transformation
+and warehouse-loading logic.
+
+File: src/run_pipeline.py
+
+What is it?
+The main pipeline orchestrator.
+
+What does it do?
+Runs the raw extraction and warehouse-loading stages in sequence.
+
+Why is it needed?
+It provides a single entry point for normal pipeline execution.
+
+File: run_pipeline.bat
+
+What is it?
+A Windows batch file.
+
+What does it do?
+Changes to the project directory and runs the Python pipeline.
+
+Why is it needed?
+It simplifies manual execution and can be used by Windows Task Scheduler.
+
 ==================================================
 END OF CURRENT NOTES
 ==================================================
