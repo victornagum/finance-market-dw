@@ -510,6 +510,175 @@ Changes to the project directory and runs the Python pipeline.
 Why is it needed?
 It simplifies manual execution and can be used by Windows Task Scheduler.
 
+Date: October 24, 2026
+
+Concepts
+
+1. Refactoring
+
+What is it?
+Restructuring code without changing what it does.
+
+Why is it important?
+The same logic was copied across files and scripts ran each other with runpy and subprocess. Turning scripts into functions made the code easier to reuse, test, and debug.
+
+2. Pure Functions
+
+What is it?
+A function that depends only on its inputs and has no side effects such as database or network access.
+
+Why is it important?
+transform() and validate() can be tested quickly with sample candles, without SQL Server or the Binance API.
+
+3. Unit Testing (pytest)
+
+What is it?
+Small automated tests that check one piece of code at a time.
+
+Why is it important?
+Tests prove the validation rules work and catch mistakes when the code changes later.
+
+4. Context Manager (resource management)
+
+What is it?
+A with-block that sets up a resource and always cleans it up.
+
+Why is it important?
+pyodbc's `with connection:` commits or rolls back but does not close the connection. Our db_connection() commits on success, rolls back on error, and always closes.
+
+5. Data Lineage (batch IDs)
+
+What is it?
+Tracking which source record a loaded row came from.
+
+Why is it important?
+Passing the ApiResponseID from the raw load to the warehouse load means we process exactly the batch we just saved, not whichever row happens to be latest.
+
+6. Log Rotation
+
+What is it?
+Starting a new log file when the current one reaches a size limit and keeping a few old ones.
+
+Why is it important?
+A pipeline that runs hourly would otherwise grow pipeline.log forever.
+
+Ideas/Trivias
+
+- Without endTime, Binance returns the current unfinished candle as the newest one.
+- A missing-value check must run before comparisons, otherwise None causes a TypeError instead of a clear message.
+- Validating close_time = open_time + 1 hour - 1 millisecond catches subtly wrong timestamps.
+- Python can decide insert/update/skip itself, which is simpler than a long T-SQL batch.
+- A "latest row" lookup is fragile if a run fails midway or two runs overlap.
+- Test helper scripts should not be named test_*.py, or pytest will try to run them.
+- This refactor replaces the earlier approach where load_history.py called load_dw.py through subprocess.
+
+Code
+
+1. Database context manager (src/config.py)
+
+Code:
+@contextmanager
+def db_connection():
+    connection = get_connection()
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+What is it?
+A reusable with-block for database work.
+
+What does it do?
+Commits when the block succeeds, rolls back when it fails, and always closes the connection.
+
+Why do we need this?
+It prevents leaked connections and half-finished changes.
+
+2. Returning the new row ID (src/raw_store.py)
+
+Code:
+INSERT INTO raw.ApiResponse (...)
+OUTPUT INSERTED.ApiResponseID
+VALUES (?, ?, ?, ?);
+
+What is it?
+A SQL Server OUTPUT clause on an INSERT.
+
+What does it do?
+Returns the generated ApiResponseID so Python can read it with cursor.fetchone().
+
+Why do we need this?
+The next pipeline step can load that exact raw batch.
+
+3. Transformation and validation (src/transform.py)
+
+What is it?
+Two pure functions, transform(data) and validate(records, expected_count).
+
+What does it do?
+transform() converts raw candle lists into typed records. validate() raises ValueError when a data quality rule fails.
+
+Why do we need this?
+It keeps data rules in one place and makes them unit testable.
+
+4. Python-side upsert (src/load_dw.py)
+
+What is it?
+A loader that reads existing rows once and then chooses INSERT, UPDATE, or skip for each candle.
+
+What does it do?
+Compares each new candle with the stored one and returns inserted, updated, and unchanged counts.
+
+Why do we need this?
+It stays idempotent while being simpler than the earlier three-part T-SQL batch.
+
+5. Rotating log file (src/run_pipeline.py)
+
+Code:
+RotatingFileHandler(LOG_DIR / "pipeline.log", maxBytes=1_000_000, backupCount=5, encoding="utf-8")
+
+What is it?
+A logging handler that rotates files by size.
+
+What does it do?
+Keeps pipeline.log near 1 MB and retains 5 older files.
+
+Why do we need this?
+It stops the log from growing without limit.
+
+6. Batch file working directory (run_pipeline.bat)
+
+Code:
+cd /d "%~dp0"
+
+What is it?
+A Windows batch trick: %~dp0 is the folder that contains the .bat file.
+
+What does it do?
+Runs the pipeline from the project folder wherever it is stored.
+
+Why do we need this?
+It removes the hardcoded C:\PythonProjects path.
+
+7. Testing an expected error (tests/test_transform.py)
+
+Code:
+with pytest.raises(ValueError, match="Duplicate"):
+    validate(transform([candle(), candle()]))
+
+What is it?
+A pytest check that code raises a specific error.
+
+What does it do?
+Passes only if validate() rejects duplicate candles.
+
+Why do we need this?
+It proves the data quality rule actually blocks bad data.
+
 ==================================================
 END OF CURRENT NOTES
 ==================================================
