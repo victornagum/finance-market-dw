@@ -1,4 +1,6 @@
 import os
+from contextlib import contextmanager
+
 import pyodbc
 from dotenv import load_dotenv
 
@@ -14,6 +16,8 @@ if not DB_SERVER:
 if not DB_NAME:
     raise ValueError("Missing required environment variable: DB_NAME")
 
+# NOTE: TrustServerCertificate=yes is acceptable for a local dev server only.
+# Use a properly trusted certificate in production.
 CONNECTION_STRING = (
     "DRIVER={ODBC Driver 18 for SQL Server};"
     f"SERVER={DB_SERVER};"
@@ -26,3 +30,20 @@ CONNECTION_STRING = (
 
 def get_connection():
     return pyodbc.connect(CONNECTION_STRING)
+
+
+@contextmanager
+def db_connection():
+    """Open a connection, commit on success, roll back on error, ALWAYS close.
+
+    pyodbc's own `with connection:` commits/rolls back but never closes.
+    """
+    connection = get_connection()
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

@@ -79,3 +79,32 @@ Next:
 - Improve incremental extraction so it catches up after missed runs.
 - Configure automatic execution when the laptop starts or the user signs in.
 - Test recovery after several missed hours.
+
+Date: October 24, 2026
+
+Completed:
+- Reviewed the full codebase and refactored the pipeline into reusable functions (removed runpy and subprocess between scripts).
+- Fixed the initial load so it requests closed candles only (added endTime when the warehouse is empty).
+- Fixed incremental extraction to start at the latest stored candle, as intended.
+- Moved transformation and validation into src/transform.py so they can be unit tested without a database.
+- Added new validation rules: empty data, positive prices, non-negative volumes and trade counts, close_time = open_time + 1 hour - 1 ms, duplicate candles, and a gap warning.
+- Fixed validation bugs: missing-value check now runs first, and the record count check runs once instead of per record.
+- Added src/raw_store.py; save_raw_response() now returns the ApiResponseID.
+- load_raw, load_dw, and load_history now pass the exact ApiResponseID instead of reading the latest raw row.
+- Simplified the warehouse upsert: one SELECT for the batch, then INSERT, UPDATE, or skip in Python.
+- Added db_connection() in src/config.py to commit, roll back, and always close connections.
+- Switched pipeline logging to a rotating log file and log each failure once.
+- Added sql/00_create_schemas.sql and made the raw table script safe to re-run.
+- Updated run_pipeline.bat to use its own folder instead of a hardcoded path.
+- Moved manual helper scripts to scripts/ and fixed test_api.py.
+- Added 8 pytest unit tests for validation; all pass.
+- Removed unused pandas from requirements.txt; added .env.example; refreshed README.md.
+- Documented every change and its reason in CHANGES.md.
+
+Next:
+- Run the refactored pipeline against SQL Server and confirm it behaves like the previous version (no inserts or updates for unchanged candles).
+- Commit the refactor to Git.
+- Improve incremental extraction so it catches up after missed runs (currently limited to 1000 candles per run).
+- Configure automatic execution when the laptop starts or the user signs in.
+- Test recovery after several missed hours.
+- Later: pin package versions, consider audit columns (LoadedAt, ApiResponseID) and Symbol/Interval in the fact table.
