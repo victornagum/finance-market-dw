@@ -11,6 +11,7 @@ BINANCE_KLINES_URL = "https://data-api.binance.vision/api/v3/klines"
 SYMBOL = "BTCUSDT"
 INTERVAL = "1h"
 ONE_HOUR_MS = 60 * 60 * 1000
+PAGE_SIZE = 1000  # Binance maximum candles per request
 
 
 def last_closed_open_time_ms():
@@ -45,7 +46,7 @@ def fetch_market_data(start_time_ms=None, end_time_ms=None, limit=None):
         if params["startTime"] > params["endTime"]:
             raise ValueError("Start time must not be later than the end time.")
 
-        params["limit"] = 1000 if limit is None else int(limit)
+        params["limit"] = PAGE_SIZE if limit is None else int(limit)
 
     else:
         # Incremental extraction: continue from the warehouse.
@@ -66,10 +67,10 @@ def fetch_market_data(start_time_ms=None, end_time_ms=None, limit=None):
             # than the comment said.
             params["startTime"] = latest_ms
             params["endTime"] = last_closed_ms
-            params["limit"] = 1000 if limit is None else int(limit)
+            params["limit"] = PAGE_SIZE if limit is None else int(limit)
 
-    if not 1 <= params["limit"] <= 1000:
-        raise ValueError("Limit must be between 1 and 1000.")
+    if not 1 <= params["limit"] <= PAGE_SIZE:
+        raise ValueError(f"Limit must be between 1 and {PAGE_SIZE}.")
 
     response = requests.get(BINANCE_KLINES_URL, params=params, timeout=30)
     response.raise_for_status()

@@ -7,12 +7,15 @@ logger = logging.getLogger(__name__)
 
 
 def load_raw():
-    """Fetch from the API, store the raw response, return its ApiResponseID."""
+    """Fetch from the API, store the raw response.
+
+    Returns (api_response_id, candle_count).
+    """
     endpoint, params, data = fetch_market_data()
     api_response_id = save_raw_response(endpoint, params, data)
     logger.info("API response saved (ApiResponseID=%s, candles=%s).",
                 api_response_id, len(data))
-    return api_response_id
+    return api_response_id, len(data)
 
 
 if __name__ == "__main__":

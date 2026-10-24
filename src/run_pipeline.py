@@ -21,17 +21,13 @@ logging.basicConfig(
 logger = logging.getLogger("pipeline")
 
 # Imported AFTER logging is configured so module loggers use these handlers.
-from load_dw import load_dw  # noqa: E402
-from load_raw import load_raw  # noqa: E402
+from incremental import run_incremental  # noqa: E402
 
 
 def main():
     try:
-        logger.info("Starting: load_raw")
-        api_response_id = load_raw()
-
-        logger.info("Starting: load_dw")
-        load_dw(api_response_id)  # process exactly the batch we just stored
+        logger.info("Starting: incremental load (with catch-up)")
+        run_incremental()
 
         logger.info("Pipeline completed successfully!")
     except Exception:
