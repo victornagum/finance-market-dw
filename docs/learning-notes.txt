@@ -679,6 +679,173 @@ Passes only if validate() rejects duplicate candles.
 Why do we need this?
 It proves the data quality rule actually blocks bad data.
 
+Date: October 24, 2026 (addendum: catch-up and recovery)
+
+Concepts
+
+1. Catch-up (Gap Recovery)
+
+What is it?
+Loading everything that was missed while a pipeline was not running.
+
+Why is it important?
+A laptop can be off, asleep, or offline. A scheduled pipeline must recover on its own instead of needing manual backfills.
+
+2. Pagination Loop
+
+What is it?
+Repeating a request in pages until no more data is returned.
+
+Why is it important?
+Binance returns at most 1000 candles per request. A full page means more data may exist; a smaller page means we have reached the end.
+
+3. Checkpointing
+
+What is it?
+Saving progress after each unit of work.
+
+Why is it important?
+Each batch is loaded before the next one starts, and the next fetch begins from the newest stored candle. If a run stops midway, the next run continues where it stopped.
+
+4. Loop Termination and Safety Caps
+
+What is it?
+Rules that guarantee a loop eventually stops.
+
+Why is it important?
+The catch-up loop stops when a batch is smaller than a full page, when a full batch makes no progress, or after 50 batches. This prevents endless loops.
+
+5. Test Doubles (Fakes and Monkeypatching)
+
+What is it?
+Replacing real functions with fake ones during a test.
+
+Why is it important?
+The catch-up tests replace load_raw and load_dw with fakes, so we can test the loop logic without SQL Server or the Binance API.
+
+6. Git Branch Workflow
+
+What is it?
+Doing work on a separate branch, then merging it into main.
+
+Why is it important?
+main stays working while new work is developed and tested. A fast-forward merge simply moves main to the new commit.
+
+Ideas/Trivia
+
+- A full page of 1000 candles means there may be more; a smaller page means we are caught up.
+- Deleting 48 hours produced a fetch of 49 candles: the 48 missing hours plus the re-fetched latest stored candle.
+- The database stores UTC. 08:21 local time (UTC+8) was 00:21 UTC, so the last closed candle was 23:00 UTC the previous day.
+- Recovery proof: 733 candles, 733 unique OpenTime values, 733 expected intervals means no gaps and no duplicates.
+- If testpaths points to a folder that does not exist, pytest ignores it and scans everything, including helper scripts named test_*.py.
+- In an INI file, an indented line is treated as a continuation of the previous line, which caused "unexpected value continuation".
+- Always run git status before git add. It caught a stray file named "tatus" created by a typo.
+- "LF will be replaced by CRLF" warnings on Windows are harmless.
+- If Git output stops at (END), press q. "git config --global core.pager cat" turns the pager off.
+- "Already up to date" on merge can mean the branch was already merged.
+- A squash-merged branch looks unmerged to Git, so "git branch -d" may refuse to delete it.
+
+Code
+
+1. Catch-up loop (src/incremental.py)
+
+Code:
+for batch in range(1, max_batches + 1):
+    api_response_id, candle_count = load_raw()
+    stats = load_dw(api_response_id)
+    if candle_count < PAGE_SIZE:
+        break
+    if stats["inserted"] == 0 and stats["updated"] == 0:
+        break
+else:
+    logger.warning("Reached max_batches ...")
+
+What is it?
+A bounded loop that runs the full raw-to-warehouse cycle repeatedly.
+
+What does it do?
+Keeps loading batches until it reaches the last closed candle. The else branch of the for loop runs only if the loop finishes without a break.
+
+Why do we need this?
+One scheduled run can recover any number of missed hours.
+
+2. Faking functions in a test (tests/test_incremental.py)
+
+Code:
+monkeypatch.setattr(incremental, "load_raw", fake_load_raw)
+
+What is it?
+A pytest feature that temporarily replaces an attribute.
+
+What does it do?
+Makes the loop call a fake function that returns controlled candle counts.
+
+Why do we need this?
+It lets us test multi-batch behavior that a 48-hour gap on real data cannot trigger.
+
+3. Test setup file (tests/conftest.py)
+
+What is it?
+A pytest file that runs before the tests.
+
+What does it do?
+Adds src to the import path and supplies fake environment variables and stand-in modules when pyodbc or dotenv are missing.
+
+Why do we need this?
+Tests run without SQL Server, ODBC drivers, or a .env file.
+
+4. pytest configuration (pytest.ini)
+
+Code:
+[pytest]
+testpaths = tests
+
+What is it?
+The pytest settings file.
+
+What does it do?
+Tells pytest to look only in the tests folder. Lines must start at the left edge with no indentation.
+
+Why do we need this?
+It keeps manual scripts such as test_api.py from being collected as tests.
+
+5. Recovery test (SQL)
+
+Code:
+DELETE FROM dw.FactMarketKline WHERE OpenTime >= '2026-10-22 00:00:00';
+
+SELECT COUNT(*) AS Candles, COUNT(DISTINCT OpenTime) AS UniqueTimes,
+       DATEDIFF(HOUR, MIN(OpenTime), MAX(OpenTime)) + 1 AS ExpectedCandles
+FROM dw.FactMarketKline;
+
+What is it?
+A way to simulate missed runs, then verify the table afterward.
+
+What does it do?
+The delete removes the newest 48 hours. The pipeline then restores them, and the counts prove nothing is missing.
+
+Why do we need this?
+It tests recovery on real data before trusting the schedule.
+
+6. Git commands used
+
+Code:
+git switch -c feature/catch-up
+git add .
+git commit -m "..."
+git switch main
+git merge feature/catch-up
+git push origin main
+git branch -d feature/catch-up
+
+What is it?
+The branch, commit, merge, and push cycle.
+
+What does it do?
+Develops on a branch, merges the finished work into main, publishes it, and deletes the finished branch.
+
+Why do we need this?
+It keeps a working main and a clear history of each change.
 ==================================================
 END OF CURRENT NOTES
 ==================================================

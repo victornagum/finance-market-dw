@@ -108,3 +108,20 @@ Next:
 - Configure automatic execution when the laptop starts or the user signs in.
 - Test recovery after several missed hours.
 - Later: pin package versions, consider audit columns (LoadedAt, ApiResponseID) and Symbol/Interval in the fact table.
+
+Date: October 24, 2026 (addendum)
+
+Completed:
+- Ran the refactored pipeline against SQL Server. The first run fetched 2 candles (1 inserted, 1 unchanged). The immediate rerun fetched 1 candle with no inserts or updates, confirming idempotent loading.
+- Added catch-up after missed runs: run_incremental() in src/incremental.py repeats fetch, raw save, validation, and warehouse load until a batch is smaller than a full page. It stops if a full batch makes no progress or after 50 batches.
+- Moved tests into tests/ and added pytest.ini, conftest.py, and 4 catch-up tests (12 tests total, all passing).
+- Tested recovery: deleted the newest 48 hours from dw.FactMarketKline, then ran the pipeline. It fetched 49 candles, inserted 48, left 1 unchanged, and finished in one batch.
+- Verified the warehouse afterward: 733 candles, 733 unique OpenTime values, 733 expected hourly intervals, so there are no gaps or duplicates.
+- Committed the work on feature/catch-up and merged it into main.
+
+Next:
+- Remove the old test_api.py, test_db_connection.py, and test_failure.py from src/ (or move them to a scripts/ folder) so they are not mistaken for tests.
+- Remove unused pandas from requirements.txt and pin package versions.
+- Check Task Scheduler over the next days to confirm automatic hourly runs and catch-up after the laptop was off.
+- Consider audit columns (LoadedAt, ApiResponseID) and Symbol/Interval in the fact table.
+- Start SQL data marts (for example daily OHLC and hourly volume summaries) and connect Power BI.
