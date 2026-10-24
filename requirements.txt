@@ -1,5 +1,4 @@
 requests
-pandas
 pyodbc
 python-dotenv
 pytest
