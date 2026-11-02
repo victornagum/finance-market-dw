@@ -846,6 +846,61 @@ Develops on a branch, merges the finished work into main, publishes it, and dele
 
 Why do we need this?
 It keeps a working main and a clear history of each change.
+
+Date: November 2, 2026
+
+## Concepts
+
+### Multi-Pair ETL
+A single ETL pipeline can process multiple trading pairs using database-driven configuration instead of hardcoding symbols. The pipeline retrieves active pairs from config.TradingPair and processes each pair independently.
+
+### Incremental Loading
+Incremental loading retrieves new data based on the latest stored OpenTime. Re-fetching the latest stored candle allows the pipeline to detect possible corrections to existing data.
+
+### Catch-Up Loading
+Catch-up loading repeats extraction and warehouse loading until the pipeline has processed all available data. This helps recover from missed scheduled runs.
+
+### Historical Backfill
+Historical backfill retrieves older records to populate the warehouse with historical data. In this project, the loader retrieves 30 days of hourly candles for every active trading pair.
+
+### Composite Primary Key
+The fact table uses PairKey and OpenTime together to uniquely identify a candle. Different trading pairs can therefore have records with the same OpenTime.
+
+### Upsert and Idempotency
+The warehouse load checks whether a record already exists:
+- Insert: the record does not exist.
+- Update: the record exists but its values have changed.
+- Unchanged: the record exists and its values are identical.
+
+This allows the pipeline to process the same data again without creating duplicate records.
+
+## Ideas / Trivias
+
+- Binance Klines API supports a maximum of 1,000 candles per request.
+- One day contains 24 hourly candles.
+- Thirty days of hourly data contain 720 candles per trading pair.
+- Five trading pairs with 720 candles each produce 3,600 records.
+- Raw API responses are retained in raw.ApiResponse for traceability and possible reprocessing.
+- Database-driven pair configuration makes it easier to activate or deactivate trading pairs without changing the extraction logic.
+- A successful API request does not automatically mean the warehouse load is correct. Data-quality checks and SQL verification are still necessary.
+- Checking consecutive OpenTime values with SQL window functions can help identify missing hourly candles.
+
+## Code
+
+### Retrieve Active Trading Pairs
+The trading_pairs.py module retrieves active records from config.TradingPair using IsActive = 1.
+
+### Multi-Pair Incremental Loading
+The incremental.py module loops through active trading pairs and performs extraction, raw storage, transformation, validation, and warehouse loading for each pair.
+
+### Historical Backfill
+The load_history.py module calculates the historical date range and retrieves hourly candles for each active pair.
+
+### Warehouse Upsert
+The load_dw.py module uses PairKey and OpenTime to identify existing records and determine whether to insert, update, or leave them unchanged.
+
+### SQL Data Verification
+COUNT, COUNT(DISTINCT), MIN, MAX, and LAG can be used to verify record counts, date ranges, uniqueness, and hourly continuity.
 ==================================================
 END OF CURRENT NOTES
 ==================================================

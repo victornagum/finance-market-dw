@@ -1,7 +1,13 @@
 
+-- =============================================
+-- Table: dw.FactMarketKline
+-- Purpose: Store market candlestick data
+-- =============================================
+
 IF OBJECT_ID('dw.FactMarketKline', 'U') IS NULL
 BEGIN
     CREATE TABLE dw.FactMarketKline (
+        PairKey INT NOT NULL,
         OpenTime DATETIME2(3) NOT NULL,
         CloseTime DATETIME2(3) NOT NULL,
 
@@ -17,6 +23,11 @@ BEGIN
         TakerBuyQuoteVolume DECIMAL(28, 8) NOT NULL,
 
         CONSTRAINT PK_FactMarketKline
-            PRIMARY KEY (OpenTime)
+            PRIMARY KEY CLUSTERED (PairKey, OpenTime),
+
+        CONSTRAINT FK_FactMarketKline_TradingPair
+            FOREIGN KEY (PairKey)
+            REFERENCES config.TradingPair(PairKey)
     );
 END;
+GO

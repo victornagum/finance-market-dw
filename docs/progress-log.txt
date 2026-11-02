@@ -125,3 +125,22 @@ Next:
 - Check Task Scheduler over the next days to confirm automatic hourly runs and catch-up after the laptop was off.
 - Consider audit columns (LoadedAt, ApiResponseID) and Symbol/Interval in the fact table.
 - Start SQL data marts (for example daily OHLC and hourly volume summaries) and connect Power BI.
+
+Date: November 2, 2026
+
+Completed:
+- Expanded the ETL pipeline to support five database-configured Binance trading pairs: BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT, and XRPUSDT.
+- Successfully ran the multi-pair incremental pipeline. All five pairs fetched their latest candles, passed validation, and were identified as unchanged (5 processed, 0 inserted, 0 updated).
+- Fixed the warehouse-load logging issue and verified that the incremental pipeline completes successfully.
+- Implemented and executed a 30-day historical backfill for all five active trading pairs.
+- Processed 3,600 hourly candles (720 per pair): 3,575 inserted and 25 unchanged, with 0 updates.
+- Verified the warehouse using SQL: each pair has 720 candles and 720 unique OpenTime values.
+- Checked hourly continuity across all five pairs. No missing hourly candles were detected.
+
+Next:
+- Review and clean up the project structure, including old test scripts in src/.
+- Review requirements.txt and pin package versions.
+- Check Task Scheduler to confirm automatic hourly runs and catch-up after missed runs.
+- Consider adding audit columns (LoadedAt, ApiResponseID) and Symbol/Interval to the fact table.
+- Design SQL data marts, starting with daily OHLC and hourly volume summaries.
+- Connect the data marts to Power BI.

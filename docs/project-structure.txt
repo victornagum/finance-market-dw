@@ -1,0 +1,33 @@
+finance-market-dw/
+│
+├── config/
+│   ├── settings.py
+│   └── trading_pairs.py
+│
+├── src/
+│   ├── extract/
+│   │   └── binance.py
+│   ├── transform/
+│   │   └── market_data.py
+│   ├── load/
+│   │   ├── load_raw.py
+│   │   └── load_dw.py
+│   ├── validation/
+│   │   └── market_checks.py
+│   └── run_pipeline.py
+│
+├── sql/
+│   ├── warehouse/
+│   ├── data_marts/
+│   └── validation/
+│
+├── docs/
+│   ├── architecture.md
+│   ├── data-dictionary.md
+│   ├── progress-log.txt
+│   └── learning-notes.txt
+│
+├── logs/
+├── tests/
+├── .env
+└── README.md
